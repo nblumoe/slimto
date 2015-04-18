@@ -49,6 +49,12 @@
    :contents "abbrechen"
    :click-handler #(swap-page target)])
 
+(defn login-button [target]
+  [styled-button
+   :icon "user"
+   :contents "Anmelden"
+   :click-handler #(swap-page target)])
+
 (defn main-page []
   [:div
    [:h1 "slimto"]
@@ -63,21 +69,35 @@
    [:form
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-scale]]
-     [:input#weight-input.form-control {:placeholder "Gewicht"}]
+     [:input#weight-input.form-control {:type "number" :placeholder "Gewicht"}]
      [:div.input-group-addon "kg"]]
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-repeat]]
-     [:input#weight-input.form-control {:placeholder "Bauchumfang"}]
-     [:div.input-group-addon "cm"]
-     ]
-    ]
+     [:input#weight-input.form-control {:type "number" :placeholder "Bauchumfang"}]
+     [:div.input-group-addon "cm"]]]
+   [:p]
    [:div.btn-group
     [cancel-button :main]
     [save-button :main]]])
 
+(defn progress-page []
+  [:div
+   [:h3 "Fortschritte"]
+   [back-button :main]
+   ])
+
+(defn settings-page []
+  [:div
+   [:h3 "Einstellungen"]
+   [login-button]
+   [back-button :main]
+   ])
+
 (defn page-component []
   (let [pages {:main [main-page]
                :entry [entry-page]
+               :progress [progress-page]
+               :settings [settings-page]
                }]
     ((:page @app-state) pages)))
 
