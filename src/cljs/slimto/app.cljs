@@ -30,21 +30,55 @@
 
 (defn back-button [target]
   [styled-button
-   :size "sm"
-   :contents "back"
+   :icon "chevron-left"
+   :contents "zurück"
+   :click-handler #(swap-page target)])
+
+(defn save-button [target]
+  [styled-button
+   :icon "ok"
+   :style "success"
+   :contents "speichern"
+   :click-handler #(swap-page target)
+   ])
+
+(defn cancel-button [target]
+  [styled-button
+   :icon "remove"
+   :style "danger"
+   :contents "abbrechen"
    :click-handler #(swap-page target)])
 
 (defn main-page []
   [:div
-   [:h1.text-center "slimto"]
-   [:p.text-center "Gemeinsam abnehmen"]
-   [:div.main-menu.text-center
-    [pages-button :entry "Eintrag" :icon "edit"]
-    [pages-button :progress "Fortschritt" :icon "stats"]
-    [pages-button :settings "Einstellungen" :icon "cog"]]])
+   [:h1 "slimto"]
+   [:p "Gemeinsam abnehmen"]
+   [pages-button :entry "Eintrag" :icon "edit"]
+   [pages-button :progress "Fortschritt" :icon "stats"]
+   [pages-button :settings "Einstellungen" :icon "cog"]])
+
+(defn entry-page []
+  [:div
+   [:h3 "Heutiger Eintrag"]
+   [:form
+    [:div.input-group
+     [:div.input-group-addon [:span.glyphicon.glyphicon-scale]]
+     [:input#weight-input.form-control {:placeholder "Gewicht"}]
+     [:div.input-group-addon "kg"]]
+    [:div.input-group
+     [:div.input-group-addon [:span.glyphicon.glyphicon-repeat]]
+     [:input#weight-input.form-control {:placeholder "Bauchumfang"}]
+     [:div.input-group-addon "cm"]
+     ]
+    ]
+   [:div.btn-group
+    [cancel-button :main]
+    [save-button :main]]])
 
 (defn page-component []
-  (let [pages {:main [main-page]}]
+  (let [pages {:main [main-page]
+               :entry [entry-page]
+               }]
     ((:page @app-state) pages)))
 
 (defn init []
