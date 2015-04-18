@@ -1,2 +1,2 @@
-{:require  [abnehm-app.app]
- :init-fns [abnehm-app.app/init]}
+{:require  [slimto.app]
+ :init-fns [slimto.app/init]}

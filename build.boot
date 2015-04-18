@@ -18,7 +18,7 @@
 (deftask build []
   (comp (speak)
         (cljs)
-        (garden :styles-var 'abnehm-app.styles/screen
+        (garden :styles-var 'slimto.styles/screen
           :output-to "css/garden.css")))
 
 (deftask run []
@@ -41,7 +41,7 @@
   (task-options! cljs {:optimizations :none
                        :unified-mode true
                        :source-map true}
-                 reload {:on-jsload 'abnehm-app.app/init})
+                 reload {:on-jsload 'slimto.app/init})
   identity)
 
 (deftask dev

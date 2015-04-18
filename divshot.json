@@ -1,5 +1,5 @@
 {
-  "name": "abnehm-app",
+  "name": "slimto",
   "root": "target",
   "clean_urls": true,
   "error_page": "error.html"
