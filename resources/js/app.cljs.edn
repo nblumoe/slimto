@@ -1,0 +1,2 @@
+{:require  [abnehm-app.app]
+ :init-fns [abnehm-app.app/init]}
