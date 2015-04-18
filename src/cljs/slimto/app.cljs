@@ -1,11 +1,20 @@
 (ns slimto.app
   (:require [reagent.core :as reagent :refer [atom]]))
 
-(def app-state (atom {:page :main}))
+(def app-state (atom {:page :entry
+                      :entries [{:date 10 :weight 83 :circ 110}
+                                {:date 40 :weight 85 :circ 120}]
+                      :new-weight 14
+                      :goal {:date 100 :weight 74 :circ 100}
+                      :slimtos 123}))
 
 (defn swap-page [target]
   (swap! app-state assoc :page target))
 
+(defn slimtos [num]
+  [:div.slimtos
+   [:span.glyphicon.glyphicon-grain]
+   [:span num]])
 
 (defn styled-button [& opts]
   (let [{:keys [style size icon block click-handler contents]} opts
@@ -34,12 +43,17 @@
    :contents "zurück"
    :click-handler #(swap-page target)])
 
+(defn save-weight []
+  (swap! app-state update-in [:entries]
+    concat [{:date 40 :weight (:new-weight @app-state)}]))
+
 (defn save-button [target]
   [styled-button
    :icon "ok"
    :style "success"
    :contents "speichern"
-   :click-handler #(swap-page target)
+   :click-handler #((save-weight)
+                    (swap-page target))
    ])
 
 (defn cancel-button [target]
@@ -69,7 +83,14 @@
    [:form
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-scale]]
-     [:input#weight-input.form-control {:type "number" :placeholder "Gewicht"}]
+     [:input#weight-input.form-control {:type "number"
+                                        :placeholder "Gewicht"
+                                        :value (:new-weight @app-state)
+                                        :on-change #(swap! app-state
+                                                         assoc
+                                                         :new-weight
+                                                         (js/parseFloat (-> % .-target .-value)))
+                                        }]
      [:div.input-group-addon "kg"]]
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-repeat]]
@@ -78,11 +99,39 @@
    [:p]
    [:div.btn-group
     [cancel-button :main]
-    [save-button :main]]])
+    [save-button :progress]]])
+
+(defn circle-component [x y color]
+  [:circle {:cx x :cy y :r 3 :style {:fill color}}])
+
+(defn plot-entry [entry]
+  (let [x (:date entry)
+        y (:weight entry)]
+    (circle-component x y "red")))
+
+(defn weight-plot []
+  [:div
+   [:h5 "Gewicht"]
+   [:svg#progress-plot {:width "100%"
+                        :preserveAspectRatio "xMidYMid meet"
+                        :viewBox "0 0 120 50"
+                        :id "canvas"}
+    [:rect {:width "100%"
+            :height "100%"
+            :fill "#EEE"}]
+    [:g {:transform (str "scale(1,-1), translate(0,-100)")}
+     (map plot-entry (:entries @app-state))
+     (let [goal (:goal @app-state)]
+       [circle-component (:date goal) (:weight goal) "blue"])]
+    ]]
+  )
+
 
 (defn progress-page []
   [:div
    [:h3 "Fortschritte"]
+   [slimtos (:slimtos @app-state)]
+   [weight-plot]
    [back-button :main]
    ])
 

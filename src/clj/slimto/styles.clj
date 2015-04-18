@@ -5,4 +5,7 @@
 (defstyles screen
   [:.btn
    [:span.glyphicon
-    {:margin-right "10px"}]])
+    {:margin-right "10px"}]]
+  [:.slimtos
+   {:color "green"
+    :font-size "350%"}])
