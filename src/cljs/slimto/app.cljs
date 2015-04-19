@@ -1,11 +1,26 @@
 (ns slimto.app
   (:require [reagent.core :as reagent :refer [atom]]))
 
+(defn ms->days [ms]
+  (-> ms
+    (/ 1000)
+    (/ 3600)
+    (/ 24)))
+
+(defn now []
+  (ms->days (.now js/Date)))
+
+(defn date [year month day]
+  (ms->days (.getTime (js/Date. year month day))))
+
 (def app-state (atom {:page :entry
-                      :entries [{:date 10 :weight 83 :circ 110}
-                                {:date 40 :weight 85 :circ 120}]
-                      :new-weight 14
-                      :goal {:date 100 :weight 74 :circ 100}
+                      :entries {(date 2015 3 1) {:weight 83 :circ 110}
+                                (date 2015 3 2) {:weight 80 :circ 110}
+                                (date 2015 3 11) {:weight 82 :circ 110}
+                                (date 2015 3 12) {:weight 79 :circ 110}
+                                }
+                      :new-weight 72
+                      :goals {(date 2015 04 30) {:weight 80 :circ 100}}
                       :slimtos 123}))
 
 (defn swap-page [target]
@@ -45,7 +60,7 @@
 
 (defn save-weight []
   (swap! app-state update-in [:entries]
-    concat [{:date 40 :weight (:new-weight @app-state)}]))
+    assoc (now) {:weight (:new-weight @app-state)}))
 
 (defn save-button [target]
   [styled-button
@@ -104,27 +119,28 @@
 (defn circle-component [x y color]
   [:circle {:cx x :cy y :r 3 :style {:fill color}}])
 
-(defn plot-entry [entry]
+(defn plot-entry [entry color]
   (let [x (:date entry)
         y (:weight entry)]
-    (circle-component x y "red")))
+    (circle-component x y color)))
 
 (defn weight-plot []
-  [:div
-   [:h5 "Gewicht"]
-   [:svg#progress-plot {:width "100%"
-                        :preserveAspectRatio "xMidYMid meet"
-                        :viewBox "0 0 120 50"
-                        :id "canvas"}
-    [:rect {:width "100%"
-            :height "100%"
-            :fill "#EEE"}]
-    [:g {:transform (str "scale(1,-1), translate(0,-100)")}
-     (map plot-entry (:entries @app-state))
-     (let [goal (:goal @app-state)]
-       [circle-component (:date goal) (:weight goal) "blue"])]
-    ]]
-  )
+  (let [days      (concat (keys (:entries @app-state))
+                    (keys (:goals @app-state)))
+        min-day   (apply min days)
+        max-day   (apply max days)
+        day-range (- max-day min-day)]
+    [:div
+     [:h5 "Gewicht"]
+     [:svg#progress-plot {:preserveAspectRatio "xMidYMid"
+                          :viewBox (clojure.string/join " " [min-day 0 (+  day-range 1) 50])}
+      [:rect {:width "100%"
+              :height "100%"
+              :fill "#EEE"}]
+      [:g {:transform (str "scale(1,-1), translate(0,-100)")}
+       (map #(plot-entry {:date (first %) :weight (:weight (second %))} "red") (:entries @app-state))
+       (map #(plot-entry {:date (first %) :weight (:weight (second %))} "blue") (:goals @app-state))]
+      ]]))
 
 
 (defn progress-page []

@@ -6,6 +6,10 @@
   [:.btn
    [:span.glyphicon
     {:margin-right "10px"}]]
+  [:svg#progress-plot
+   {:max-height "200px"
+    :height "auto"
+    :width "100%"}]
   [:.slimtos
    {:color "green"
     :font-size "350%"}])

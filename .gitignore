@@ -1,4 +1,5 @@
 /target
 /.nrepl-port
+/.nrepl-history
 /.divshot-cache
 /divshot-debug.log
