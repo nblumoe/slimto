@@ -1,30 +1,29 @@
 (ns slimto.app
-  (:require [reagent.core :as reagent :refer [atom]]))
+  (:require [reagent.core      :as reagent :refer [atom]]
+            [slimto.utils.time :as time]
+            [slimto.plotting   :as plot]
+            ))
 
-(defn ms->days [ms]
-  (-> ms
-    (/ 1000)
-    (/ 3600)
-    (/ 24)))
 
-(defn now []
-  (ms->days (.now js/Date)))
-
-(defn date [year month day]
-  (ms->days (.getTime (js/Date. year month day))))
-
+;; state
 (def app-state (atom {:page :entry
-                      :entries {(date 2015 3 1) {:weight 83 :circ 110}
-                                (date 2015 3 2) {:weight 80 :circ 110}
-                                (date 2015 3 11) {:weight 82 :circ 110}
-                                (date 2015 3 12) {:weight 79 :circ 110}
+                      :entries {(time/date 2015 3 1) {:weight 83 :circ 110}
+                                (time/date 2015 3 2) {:weight 80 :circ 110}
+                                (time/date 2015 3 11) {:weight 82 :circ 110}
+                                (time/date 2015 3 12) {:weight 79 :circ 110}
                                 }
                       :new-weight 72
-                      :goals {(date 2015 04 30) {:weight 80 :circ 100}}
+                      :goals {(time/date 2015 04 30) {:weight 80 :circ 100}}
                       :slimtos 123}))
 
 (defn swap-page [target]
   (swap! app-state assoc :page target))
+
+(defn save-weight []
+  (swap! app-state update-in [:entries]
+    assoc (time/now) {:weight (:new-weight @app-state)}))
+
+;; UI
 
 (defn slimtos [num]
   [:div.slimtos
@@ -58,10 +57,6 @@
    :contents "zurück"
    :click-handler #(swap-page target)])
 
-(defn save-weight []
-  (swap! app-state update-in [:entries]
-    assoc (now) {:weight (:new-weight @app-state)}))
-
 (defn save-button [target]
   [styled-button
    :icon "ok"
@@ -83,6 +78,8 @@
    :icon "user"
    :contents "Anmelden"
    :click-handler #(swap-page target)])
+
+;; pages
 
 (defn main-page []
   [:div
@@ -116,38 +113,11 @@
     [cancel-button :main]
     [save-button :progress]]])
 
-(defn circle-component [x y color]
-  [:circle {:cx x :cy y :r 3 :style {:fill color}}])
-
-(defn plot-entry [entry color]
-  (let [x (:date entry)
-        y (:weight entry)]
-    (circle-component x y color)))
-
-(defn weight-plot []
-  (let [days      (concat (keys (:entries @app-state))
-                    (keys (:goals @app-state)))
-        min-day   (apply min days)
-        max-day   (apply max days)
-        day-range (- max-day min-day)]
-    [:div
-     [:h5 "Gewicht"]
-     [:svg#progress-plot {:preserveAspectRatio "xMidYMid"
-                          :viewBox (clojure.string/join " " [min-day 0 (+  day-range 1) 50])}
-      [:rect {:width "100%"
-              :height "100%"
-              :fill "#EEE"}]
-      [:g {:transform (str "scale(1,-1), translate(0,-100)")}
-       (map #(plot-entry {:date (first %) :weight (:weight (second %))} "red") (:entries @app-state))
-       (map #(plot-entry {:date (first %) :weight (:weight (second %))} "blue") (:goals @app-state))]
-      ]]))
-
-
 (defn progress-page []
   [:div
    [:h3 "Fortschritte"]
    [slimtos (:slimtos @app-state)]
-   [weight-plot]
+   [plot/weight-plot (:entries @app-state) (:goals @app-state)]
    [back-button :main]
    ])
 
@@ -158,7 +128,7 @@
    [back-button :main]
    ])
 
-(defn page-component []
+(defn page-router []
   (let [pages {:main [main-page]
                :entry [entry-page]
                :progress [progress-page]
@@ -167,5 +137,5 @@
     ((:page @app-state) pages)))
 
 (defn init []
-  (reagent/render-component [page-component]
+  (reagent/render-component [page-router]
     (.getElementById js/document "container")))
