@@ -10,6 +10,8 @@
    {:max-height "200px"
     :height "auto"
     :width "100%"}]
+  [:img.avatar
+   {:max-height "200px"}]
   [:.slimtos
    {:color "green"
     :font-size "350%"}])
