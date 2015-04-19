@@ -6,8 +6,14 @@
     (/ 3600)
     (/ 24)))
 
+(defn str->days [s]
+  (let [date (js/Date. s)]
+    (-> date
+      .getTime
+      ms->days)))
+
 (defn now []
-  (ms->days (.now js/Date)))
+  (.toString (js/Date.)))
 
 (defn date [year month day]
-  (ms->days (.getTime (js/Date. year month day))))
+  (.toString (js/Date. year month day)))

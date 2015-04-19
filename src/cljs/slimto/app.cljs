@@ -2,26 +2,48 @@
   (:require [reagent.core      :as reagent :refer [atom]]
             [slimto.utils.time :as time]
             [slimto.plotting   :as plot]
-            ))
+            [slimto.config     :as config]))
 
+;; firebase
+(def data-ref (js/Firebase. config/firebase-url))
 
 ;; state
-(def app-state (atom {:page :entry
-                      :entries {(time/date 2015 3 1) {:weight 83 :circ 110}
-                                (time/date 2015 3 2) {:weight 80 :circ 110}
-                                (time/date 2015 3 11) {:weight 82 :circ 110}
-                                (time/date 2015 3 12) {:weight 79 :circ 110}
-                                }
-                      :new-weight 72
-                      :goals {(time/date 2015 04 30) {:weight 80 :circ 100}}
-                      :slimtos 123}))
+(def app-state (atom {:page       :entry
+                      :new-weight 84
+                      :user-id    nil
+                      :email      nil
+                      :password   nil
+                      :users      nil}))
 
 (defn swap-page [target]
   (swap! app-state assoc :page target))
 
+(defn save-email [user]
+  (swap! app-state assoc :email user))
+
+(defn save-user-id [id]
+  (swap! app-state assoc :user-id id))
+
+(defn save-pwd [pwd]
+  (swap! app-state assoc :password pwd))
+
+(defn current-email []
+  (:email @app-state))
+
+(defn current-user-id []
+  (.-uid (.getAuth data-ref)))
+
+(defn current-user-data []
+  (get-in @app-state [:users (current-user-id)]))
+
+(defn current-slimtos []
+  (get-in @app-state [:users (current-user-id) :slimtos]))
+
 (defn save-weight []
-  (swap! app-state update-in [:entries]
-    assoc (time/now) {:weight (:new-weight @app-state)}))
+  (swap! app-state update-in [:users (current-user-id) :entries]
+    assoc (time/now) {:weight (:new-weight @app-state)})
+  (.update (.child  data-ref (str (current-user-id) "/entries"))
+    (clj->js (get-in @app-state [:users (current-user-id) :entries]))))
 
 ;; UI
 
@@ -62,7 +84,7 @@
    :icon "ok"
    :style "success"
    :contents "speichern"
-   :click-handler #((save-weight)
+   :click-handler (fn [] (save-weight)
                     (swap-page target))
    ])
 
@@ -73,11 +95,17 @@
    :contents "abbrechen"
    :click-handler #(swap-page target)])
 
-(defn login-button [target]
+(defn login-button []
   [styled-button
-   :icon "user"
+   :icon "log-in"
    :contents "Anmelden"
-   :click-handler #(swap-page target)])
+   :click-handler #(.authWithPassword data-ref
+                     (clj->js {:email    (:email @app-state)
+                               :password (:password @app-state)})
+                     (fn [error auth-data] (if error
+                                            (.log js/console error)
+                                            (save-user-id (.-uid auth-data)))
+                                            ))])
 
 ;; pages
 
@@ -114,19 +142,33 @@
     [save-button :progress]]])
 
 (defn progress-page []
-  [:div
-   [:h3 "Fortschritte"]
-   [slimtos (:slimtos @app-state)]
-   [plot/weight-plot (:entries @app-state) (:goals @app-state)]
-   [back-button :main]
-   ])
+  (let [user-data (current-user-data)
+        entries   (:entries user-data)
+        goals     (:goals user-data)]
+    [:div
+     [:h3 "Fortschritt"]
+     [slimtos (current-slimtos)]
+     [plot/weight-plot entries goals]
+     [back-button :main]
+     ]))
 
 (defn settings-page []
   [:div
    [:h3 "Einstellungen"]
+   [:div.input-group
+    [:div.input-group-addon [:span.glyphicon.glyphicon-envelope]]
+    [:input.form-control {:type "text"
+                          :placeholder "E-Mail"
+                          :value (:email @app-state)
+                          :on-change #(save-email (-> % .-target .-value))
+                          }]]
+   [:div.input-group
+    [:div.input-group-addon [:span.glyphicon.glyphicon-lock]]
+    [:input.form-control {:type "password" :placeholder "Passwort"
+                          :on-change #(save-pwd (-> % .-target .-value))
+                          }]]
    [login-button]
-   [back-button :main]
-   ])
+   [back-button :main]])
 
 (defn page-router []
   (let [pages {:main [main-page]

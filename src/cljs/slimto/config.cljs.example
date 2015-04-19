@@ -1,0 +1,3 @@
+(ns slimto.config)
+
+(def firebase-url "https://<your-app>.firebaseio.com/")
