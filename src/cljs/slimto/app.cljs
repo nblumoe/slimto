@@ -8,13 +8,23 @@
 (def data-ref (js/Firebase. config/firebase-url))
 
 ;; state
-;; TODO pull data from server on login/start
 (def app-state (atom {:page       :main
-                      :new-weight 84
+                      :new-weight 82
                       :user-id    nil
                       :email      nil
                       :password   nil
                       :users      nil}))
+
+(defn current-user-id []
+  (if-let [auth (.getAuth data-ref)]
+    (keyword (.-uid auth))))
+
+(defn update-from-snapshot [snapshot]
+  (let [data  (js->clj (.val snapshot) :keywordize-keys true)
+        entries (get-in data [(current-user-id) :entries])]
+    (swap! app-state assoc-in [:users (current-user-id) :entries] entries)))
+
+(.on data-ref "value" update-from-snapshot)
 
 (defn swap-page [target]
   (swap! app-state assoc :page target))
@@ -34,10 +44,6 @@
 (defn current-email []
   (:email @app-state))
 
-(defn current-user-id []
-  (if-let [auth (.getAuth data-ref)]
-    (.-uid auth)))
-
 (defn current-user-data []
   (get-in @app-state [:users (current-user-id)]))
 
@@ -47,7 +53,7 @@
 (defn save-weight []
   (swap! app-state update-in [:users (current-user-id) :entries]
     assoc (time/now) {:weight (:new-weight @app-state)})
-  (.update (.child  data-ref (str (current-user-id) "/entries"))
+  (.update (.child  data-ref (str (name (current-user-id)) "/entries"))
     (clj->js (get-in @app-state [:users (current-user-id) :entries]))))
 
 ;; UI
