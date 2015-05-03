@@ -8,9 +8,26 @@
                                        }}])
 
 (defn plot-entry [entry color]
-  (let [x (:date entry)
-        y (:weight entry)]
+  (let [x (:x entry)
+        y (:y entry)]
     (circle-component x y color)))
+
+(defn timeseries-plot [title data key]
+  (let [days      (map time/str->days (keys data))
+        min-day   (apply min days)
+        max-day   (apply max days)
+        day-range (- max-day min-day)]
+    [:div
+     (.log js/console data)
+     [:h5 title]
+     [:svg#progress-plot {:preserveAspectRatio "xMidYMid"
+                          :viewBox (clojure.string/join " " [min-day 0 (+  day-range 1) 100])}
+      [:g {:transform (str "scale(1,-1), translate(0,-100)")}
+       (map #(plot-entry {:x (time/str->days (first %)) :y (key (second %))} "red") data)]
+      ]]))
+
+(defn activity-plot [activities]
+  (timeseries-plot "Aktivitäten" activities :activity))
 
 (defn weight-plot [entries goals]
   (let [days      (map time/str->days (concat (keys entries) (keys goals)))
@@ -22,6 +39,6 @@
      [:svg#progress-plot {:preserveAspectRatio "xMidYMid"
                           :viewBox (clojure.string/join " " [min-day 0 (+  day-range 1) 50])}
       [:g {:transform (str "scale(1,-1), translate(0,-100)")}
-       (map #(plot-entry {:date (time/str->days (first %)) :weight (:weight (second %))} "red")  entries)
-       (map #(plot-entry {:date (time/str->days (first %)) :weight (:weight (second %))} "blue") goals)]
+       (map #(plot-entry {:x (time/str->days (first %)) :y (:weight (second %))} "red")  entries)
+       (map #(plot-entry {:x (time/str->days (first %)) :y (:weight (second %))} "blue") goals)]
       ]]))

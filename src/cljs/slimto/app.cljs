@@ -29,8 +29,8 @@
 
 (defn update-from-snapshot [snapshot]
   (let [data  (js->clj (.val snapshot) :keywordize-keys true)
-        weights (get-in data [(current-user-id) :entries :weights])]
-    (swap! app-state assoc-in [:users (current-user-id) :entries :weights] weights)))
+        entries (get-in data [(current-user-id) :entries])]
+    (swap! app-state assoc-in [:users (current-user-id) :entries] entries)))
 
 (defn save-user-id [id]
   (swap! app-state assoc :user-id id))
@@ -194,13 +194,15 @@
     [save-button save-activity :progress]]])
 
 (defn progress-page []
-  (let [user-data (current-user-data)
-        weights   (get-in user-data [:entries :weights])
-        goals     (:goals user-data)]
+  (let [user-data  (current-user-data)
+        weights    (get-in user-data [:entries :weights])
+        goals      (:goals user-data)
+        activities (get-in user-data [:entries :activities])]
     [:div
      [:h3 "Fortschritt"]
      [slimtos (current-slimtos)]
      [plot/weight-plot weights goals]
+     [plot/activity-plot activities]
      [back-button :main]]))
 
 (defn settings-page []
