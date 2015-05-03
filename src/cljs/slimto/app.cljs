@@ -7,24 +7,34 @@
 ;; firebase
 (def data-ref (js/Firebase. config/firebase-url))
 
+(defn firebase-session-user
+  "Returns the user ID from the current firebase sessions if it exists, otherwise returns nil"
+  []
+  (if-let [auth (.getAuth data-ref)] (keyword (.-uid auth))))
+
 ;; state
 (def app-state (atom {:page       :main
                       :new-weight 82
-                      :user-id    nil
+                      :user-id    (firebase-session-user)
                       :email      nil
                       :password   nil
                       :users      nil}))
-
-(defn current-user-id []
-  (if-let [auth (.getAuth data-ref)]
-    (keyword (.-uid auth))))
 
 (defn update-from-snapshot [snapshot]
   (let [data  (js->clj (.val snapshot) :keywordize-keys true)
         entries (get-in data [(current-user-id) :entries])]
     (swap! app-state assoc-in [:users (current-user-id) :entries] entries)))
 
-(.on data-ref "value" update-from-snapshot)
+(defn save-user-id [id]
+  (swap! app-state assoc :user-id id))
+
+(defn- on-authentication [auth-data]
+  (when auth-data
+    (save-user-id (firebase-session-user))
+    (.on data-ref "value" update-from-snapshot
+      (fn [err] (.log js/console "Error when reading from Firebase: " err)))))
+
+(.onAuth data-ref on-authentication)
 
 (defn swap-page [target]
   (swap! app-state assoc :page target))
@@ -35,11 +45,11 @@
 (defn save-email [user]
   (swap! app-state assoc :email user))
 
-(defn save-user-id [id]
-  (swap! app-state assoc :user-id id))
-
 (defn save-pwd [pwd]
   (swap! app-state assoc :password pwd))
+
+(defn current-user-id []
+  (:user-id @app-state))
 
 (defn current-email []
   (:email @app-state))
@@ -111,15 +121,13 @@
     (clj->js {:email    (:email @app-state)
               :password (:password @app-state)})
     (fn [error auth-data] (if error
-                           (.log js/console error)
-                           (save-user-id (.-uid auth-data))))))
+                           (.log js/console error)))))
 
 (defn login-button [target]
   [styled-button
    :icon "log-in"
    :contents "Anmelden"
-   :click-handler #((login)
-                    (swap-page target))])
+   :click-handler login])
 
 ;; pages
 
@@ -188,15 +196,17 @@
    [login-button :main]])
 
 (defn page-router []
-  (let [pages {:main     [main-page]
-               :entry    [entry-page]
-               :progress [progress-page]
-               :settings [settings-page]
-               :login    [login-page]
-               }]
-    (if (current-user-id)
-      ((:page @app-state) pages)
-      (:login pages))))
+   (let [pages {:main     [main-page]
+                :entry    [entry-page]
+                :progress [progress-page]
+                :settings [settings-page]
+                :login    [login-page]
+                }]
+        (fn []
+          (if (current-user-id)
+            ((@app-state :page) pages)
+            (:login pages)))))
+
 
 (defn init []
   (reagent/render-component [page-router]
