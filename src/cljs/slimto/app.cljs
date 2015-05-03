@@ -4,6 +4,12 @@
             [slimto.plotting   :as plot]
             [slimto.config     :as config]))
 
+(def activity-levels
+  {:none    0
+   :low    10
+   :medium 20
+   :high   30})
+
 ;; firebase
 (def data-ref (js/Firebase. config/firebase-url))
 
@@ -13,17 +19,18 @@
   (if-let [auth (.getAuth data-ref)] (keyword (.-uid auth))))
 
 ;; state
-(def app-state (atom {:page       :main
-                      :new-weight 82
-                      :user-id    (firebase-session-user)
-                      :email      nil
-                      :password   nil
-                      :users      nil}))
+(def app-state (atom {:page         :main
+                      :new-weight   80
+                      :new-activity (:none activity-levels)
+                      :user-id      (firebase-session-user)
+                      :email        nil
+                      :password     nil
+                      :users        nil}))
 
 (defn update-from-snapshot [snapshot]
   (let [data  (js->clj (.val snapshot) :keywordize-keys true)
-        entries (get-in data [(current-user-id) :entries])]
-    (swap! app-state assoc-in [:users (current-user-id) :entries] entries)))
+        weights (get-in data [(current-user-id) :entries :weights])]
+    (swap! app-state assoc-in [:users (current-user-id) :entries :weights] weights)))
 
 (defn save-user-id [id]
   (swap! app-state assoc :user-id id))
@@ -41,6 +48,9 @@
 
 (defn swap-new-weight [weight]
   (swap! app-state assoc :new-weight weight))
+
+(defn swap-new-activity [activity]
+  (swap! app-state assoc :new-activity activity))
 
 (defn save-email [user]
   (swap! app-state assoc :email user))
@@ -60,11 +70,18 @@
 (defn current-slimtos []
   (get-in @app-state [:users (current-user-id) :slimtos]))
 
+;; TODO refactor save-weight and save-activity to make them more DRY
 (defn save-weight []
-  (swap! app-state update-in [:users (current-user-id) :entries]
+  (swap! app-state update-in [:users (current-user-id) :entries :weights]
     assoc (time/now) {:weight (:new-weight @app-state)})
-  (.update (.child  data-ref (str (name (current-user-id)) "/entries"))
-    (clj->js (get-in @app-state [:users (current-user-id) :entries]))))
+  (.update (.child  data-ref (str (name (current-user-id)) "/entries/weights"))
+    (clj->js (get-in @app-state [:users (current-user-id) :entries :weights]))))
+
+(defn save-activity []
+  (swap! app-state update-in [:users (current-user-id) :entries :activities]
+    assoc (time/now) {:activity (:new-activity @app-state)})
+  (.update (.child  data-ref (str (name (current-user-id)) "/entries/activities"))
+    (clj->js (get-in @app-state [:users (current-user-id) :entries :activities]))))
 
 ;; UI
 
@@ -100,14 +117,14 @@
    :contents "zurück"
    :click-handler #(swap-page target)])
 
-(defn save-button [target]
+(defn save-button [save-fn target]
   [styled-button
    :icon "ok"
    :style "success"
    :contents "speichern"
-   :click-handler (fn [] (save-weight)
-                    (swap-page target))
-   ])
+   :click-handler (fn []
+                    (save-fn)
+                    (swap-page target))])
 
 (defn cancel-button [target]
   [styled-button
@@ -120,8 +137,7 @@
   (.authWithPassword data-ref
     (clj->js {:email    (:email @app-state)
               :password (:password @app-state)})
-    (fn [error auth-data] (if error
-                           (.log js/console error)))))
+    (fn [error auth-data] (if error (.log js/console error)))))
 
 (defn login-button [target]
   [styled-button
@@ -135,40 +151,57 @@
   [:div
    [:h1 "slimto"]
    [:p "Gemeinsam abnehmen"]
-   [pages-button :entry "Eintrag" :icon "edit"]
+   [pages-button :weight "Gewicht" :icon "scale"]
+   [pages-button :activity "Aktivität" :icon "dashboard"]
    [pages-button :progress "Fortschritt" :icon "stats"]
    [pages-button :settings "Einstellungen" :icon "cog"]])
 
-(defn entry-page []
+(defn weight-page []
   [:div
-   [:h3 "Heutiger Eintrag"]
+   [:h3 "heutiges Gewicht"]
    [:form
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-scale]]
      [:input.form-control.input-lg {:type "number"
                                     :placeholder "Gewicht"
                                     :value (:new-weight @app-state)
-                                    :on-change #(swap-new-weight
-                                                  (js/parseFloat (-> %
-                                                                   .-target
-                                                                   .-value)))}]
+                                    :on-change #(swap-new-weight (-> % .-target
+                                                                   .-value
+                                                                   js/parseFloat))}]
      [:div.input-group-addon "kg"]]]
    [:p]
    [:div.btn-group
     [back-button :main]
-    [save-button :progress]
-    ]])
+    [save-button save-weight :progress]]])
+
+(defn activity-page []
+  [:div
+   [:h3 "heutige Aktivität"]
+   [:form
+    [:div.input-group
+     [:div.input-group-addon [:span.glyphicon.glyphicon-dashboard]]
+     [:select.form-control.input-lg
+      {:on-change #(swap-new-activity (-> % .-target .-value js/parseInt))}
+      [:option {:value (:none activity-levels)} "keine"]
+      [:option {:value (:low activity-levels)}  "geringe"]
+      [:option {:value (:medium activity-levels)} "mittlere"]
+      [:option {:value (:high activity-levels)} "hohe"]]
+     [:div.input-group-addon "Anstrengung"]
+     ]]
+   [:p]
+   [:div.btn-group
+    [back-button :main]
+    [save-button save-activity :progress]]])
 
 (defn progress-page []
   (let [user-data (current-user-data)
-        entries   (:entries user-data)
+        weights   (get-in user-data [:entries :weights])
         goals     (:goals user-data)]
     [:div
      [:h3 "Fortschritt"]
      [slimtos (current-slimtos)]
-     [plot/weight-plot entries goals]
-     [back-button :main]
-     ]))
+     [plot/weight-plot weights goals]
+     [back-button :main]]))
 
 (defn settings-page []
   [:div
@@ -186,22 +219,20 @@
     [:input.form-control {:type "text"
                           :placeholder "E-Mail"
                           :value (:email @app-state)
-                          :on-change #(save-email (-> % .-target .-value))
-                          }]]
+                          :on-change #(save-email (-> % .-target .-value))}]]
    [:div.input-group
     [:div.input-group-addon [:span.glyphicon.glyphicon-lock]]
     [:input.form-control {:type "password" :placeholder "Passwort"
-                          :on-change #(save-pwd (-> % .-target .-value))
-                          }]]
+                          :on-change #(save-pwd (-> % .-target .-value))}]]
    [login-button :main]])
 
 (defn page-router []
    (let [pages {:main     [main-page]
-                :entry    [entry-page]
+                :weight   [weight-page]
+                :activity [activity-page]
                 :progress [progress-page]
                 :settings [settings-page]
-                :login    [login-page]
-                }]
+                :login    [login-page]}]
         (fn []
           (if (current-user-id)
             ((@app-state :page) pages)

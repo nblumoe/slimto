@@ -13,7 +13,7 @@
       ms->days)))
 
 (defn now []
-  (.toString (js/Date.)))
+  (.toDateString (js/Date.)))
 
 (defn date [year month day]
-  (.toString (js/Date. year month day)))
+  (.toDateString (js/Date. year month day)))

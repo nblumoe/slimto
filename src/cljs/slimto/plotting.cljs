@@ -2,7 +2,10 @@
   (:require [slimto.utils.time :as time]))
 
 (defn circle-component [x y color]
-  [:circle {:cx x :cy y :r 2 :style {:fill color}}])
+  [:circle {:cx x :cy y :r 2 :style {:fill color
+                                       :stroke "#EEE"
+                                       :stroke-width "0.5px"
+                                       }}])
 
 (defn plot-entry [entry color]
   (let [x (:date entry)
@@ -19,6 +22,6 @@
      [:svg#progress-plot {:preserveAspectRatio "xMidYMid"
                           :viewBox (clojure.string/join " " [min-day 0 (+  day-range 1) 50])}
       [:g {:transform (str "scale(1,-1), translate(0,-100)")}
-       (map #(plot-entry {:date (time/str->days (first %)) :weight (:weight (second %))} "red") entries)
+       (map #(plot-entry {:date (time/str->days (first %)) :weight (:weight (second %))} "red")  entries)
        (map #(plot-entry {:date (time/str->days (first %)) :weight (:weight (second %))} "blue") goals)]
       ]]))
