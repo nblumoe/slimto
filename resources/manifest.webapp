@@ -1,0 +1,21 @@
+﻿{
+  "name": "slimto",
+  "description": "Gemeinsam abnehmen",
+  "version": "0.0.1",
+  "launch_path": "/index.html",
+  "orientation": ["portrait"],
+  "icons": {
+    "16": "/icon-16.png",
+    "32": "/icon-32.png",
+    "128": "/icon-128.png",
+    "256": "/icon-256.png"
+  },
+  "developer": {
+    "name": "Nils Blum-Oeste",
+    "url": "http://www.webendemics.com/"
+  },
+  "default_locale": "de",
+  "permissions": {
+  },
+  "fullscreen": "true"
+}
