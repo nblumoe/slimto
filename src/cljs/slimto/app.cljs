@@ -27,13 +27,18 @@
                       :password     nil
                       :users        nil}))
 
-(defn update-from-snapshot [snapshot]
-  (let [data  (js->clj (.val snapshot) :keywordize-keys true)
-        entries (get-in data [(current-user-id) :entries])]
-    (swap! app-state assoc-in [:users (current-user-id) :entries] entries)))
-
 (defn save-user-id [id]
   (swap! app-state assoc :user-id id))
+
+(defn save-user-entries [user-id entries]
+  (swap! app-state assoc-in [:users user-id :entries] entries))
+
+(defn update-from-snapshot [snapshot]
+  (let [data  (js->clj (.val snapshot) :keywordize-keys true)
+        entries (get-in data [(current-user-id) :entries])
+        last-weight (-> entries :weights last last :weight) ]
+    (save-user-entries (current-user-id) entries)
+    (swap-new-weight (js/parseInt last-weight))))
 
 (defn- on-authentication [auth-data]
   (when auth-data
@@ -73,13 +78,13 @@
 ;; TODO refactor save-weight and save-activity to make them more DRY
 (defn save-weight []
   (swap! app-state update-in [:users (current-user-id) :entries :weights]
-    assoc (time/now) {:weight (:new-weight @app-state)})
+    assoc (time/today) {:weight (:new-weight @app-state)})
   (.update (.child  data-ref (str (name (current-user-id)) "/entries/weights"))
     (clj->js (get-in @app-state [:users (current-user-id) :entries :weights]))))
 
 (defn save-activity []
   (swap! app-state update-in [:users (current-user-id) :entries :activities]
-    assoc (time/now) {:activity (:new-activity @app-state)})
+    assoc (time/today) {:activity (:new-activity @app-state)})
   (.update (.child  data-ref (str (name (current-user-id)) "/entries/activities"))
     (clj->js (get-in @app-state [:users (current-user-id) :entries :activities]))))
 
@@ -196,7 +201,7 @@
 (defn progress-page []
   (let [user-data  (current-user-data)
         weights    (get-in user-data [:entries :weights])
-        goals      (:goals user-data)
+        goals      (get-in user-data [:entries :goals])
         activities (get-in user-data [:entries :activities])]
     [:div
      [:h3 "Fortschritt"]

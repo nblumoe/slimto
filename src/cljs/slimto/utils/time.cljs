@@ -1,4 +1,8 @@
-(ns slimto.utils.time)
+(ns slimto.utils.time
+  (:require [cljs-time.core   :as tcore]
+            [cljs-time.format :as tformat]))
+
+(def custom-formatter (tformat/formatter "yyyy-MM-dd"))
 
 (defn ms->days [ms]
   (-> ms
@@ -12,8 +16,5 @@
       .getTime
       ms->days)))
 
-(defn now []
-  (.toDateString (js/Date.)))
-
-(defn date [year month day]
-  (.toDateString (js/Date. year month day)))
+(defn today []
+  (tformat/unparse custom-formatter (tcore/today-at 00 00)))
