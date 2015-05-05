@@ -1,6 +1,9 @@
 (ns slimto.plotting
   (:require [slimto.utils.time :as time]))
 
+(defn- plot-viewbox []
+  (clojure.string/join " " [-0.2 -1.2 1.4 1.4]))
+
 (defn- svg-circle [x y color]
   [:circle {:cx x :cy y :r "3%"
             :style {:fill color :stroke "#FFF" :stroke-width ".75%"}}])
@@ -15,9 +18,6 @@
         max (apply max values)]
     (fn [value]
       (/ (- value min) (- max min)))))
-
-(defn- plot-viewbox []
-  (clojure.string/join " " [-0.2 -1.2 1.4 1.4]))
 
 (defn- progress-plot [title data-series]
   [:div

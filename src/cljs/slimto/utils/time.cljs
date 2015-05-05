@@ -11,10 +11,8 @@
     (/ 24)))
 
 (defn str->days [s]
-  (let [date (js/Date. s)]
-    (-> date
-      .getTime
-      ms->days)))
+  (let [date (js/Date. (clj->js s))]
+    (-> date .getTime ms->days)))
 
 (defn today []
   (tformat/unparse custom-formatter (tcore/today-at 00 00)))
