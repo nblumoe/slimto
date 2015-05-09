@@ -36,9 +36,14 @@
 (defn update-from-snapshot [snapshot]
   (let [data  (js->clj (.val snapshot) :keywordize-keys true)
         entries (get-in data [(current-user-id) :entries])
-        last-weight (-> entries :weights last last :weight) ]
+        most-recent-weight (->> entries
+                             :weights
+                             (into (sorted-map-by <))
+                             last
+                             last
+                             :weight)]
     (save-user-entries (current-user-id) entries)
-    (swap-new-weight (js/parseInt last-weight))))
+    (swap-new-weight (js/parseFloat most-recent-weight))))
 
 (defn- on-authentication [auth-data]
   (when auth-data
@@ -168,9 +173,12 @@
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-scale]]
      [:input.form-control.input-lg {:type "number"
+                                    :step "0.01"
+                                    :min 0
+                                    :defaultValue (:new-weight @app-state)
                                     :placeholder "Gewicht"
-                                    :value (:new-weight @app-state)
-                                    :on-change #(swap-new-weight (-> % .-target
+                                    :on-change #(swap-new-weight (-> %
+                                                                   .-target
                                                                    .-value
                                                                    js/parseFloat))}]
      [:div.input-group-addon "kg"]]]

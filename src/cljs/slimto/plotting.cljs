@@ -5,8 +5,8 @@
   (clojure.string/join " " [-0.2 -1.2 1.4 1.4]))
 
 (defn- svg-circle [x y color]
-  [:circle {:cx x :cy y :r "3%"
-            :style {:fill color :stroke "#FFF" :stroke-width ".75%"}}])
+  [:circle {:cx x :cy y :r "2%"
+            :style {:fill color :stroke "#FFF" :stroke-width ".5%"}}])
 
 (defn- plot-circle [entry color]
   (let [x (first entry)
