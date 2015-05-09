@@ -215,13 +215,12 @@
 
 (defn progress-page []
   (let [user-data  (current-user-data)
-        weights    (get-in user-data [:entries :weights])
-        goals      (get-in user-data [:entries :goals])
-        activities (get-in user-data [:entries :activities])]
+        activities (get-in user-data [:entries :activities])
+        users-data (:users @app-state)]
     [:div
      [:h3 "Fortschritt"]
      [slimtos (current-slimtos)]
-     [plot/weight-plot weights goals]
+     [plot/weight-plot users-data]
      [plot/activity-plot activities]
      [back-button :main]]))
 

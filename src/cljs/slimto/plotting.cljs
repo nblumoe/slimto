@@ -6,12 +6,21 @@
 
 (defn- svg-circle [x y color]
   [:circle {:cx x :cy y :r "2%"
-            :style {:fill color :stroke "#FFF" :stroke-width ".5%"}}])
+            :style {:fill color :stroke "#FFF" :opacity 0.65 :stroke-width ".05%"}}])
+
+(defn- svg-square [x y color]
+  [:rect {:x x :y y :width "3%" :height "3%"
+            :style {:fill color :stroke "#FFF" :opacity 0.65 :stroke-width ".05%"}}])
 
 (defn- plot-circle [entry color]
   (let [x (first entry)
         y (second entry)]
     (svg-circle x y color)))
+
+(defn- plot-square [entry color]
+  (let [x (first entry)
+        y (second entry)]
+    (svg-square x y color)))
 
 (defn- unit-scale [values]
   (let [min (apply min values)
@@ -26,23 +35,38 @@
     [:g {:transform (str "scale(1,-1)")}
      data-series]]])
 
-(defn weight-plot [entries goals]
+(defn entries-goals-plot [entries goals color days-scale]
   (let [entries-days    (map time/str->days (keys entries))
         goals-days      (map time/str->days (keys goals))
         entries-weights (map :weight (vals entries))
         goals-weights   (map :goal (vals goals))
-        all-days        (concat entries-days goals-days)
         all-weights     (concat entries-weights goals-weights)
-        days-scale      (unit-scale all-days)
         weights-scale   (unit-scale all-weights)
         entries-data    (apply map list [(map days-scale entries-days)
                                          (map weights-scale entries-weights)])
         goals-data      (apply map list [(map days-scale goals-days)
                                          (map weights-scale goals-weights)])]
+    (concat
+      (map #(plot-circle % color) entries-data)
+      (map #(plot-square % color) goals-data))))
+
+(defn weight-plot [users-data]
+  (let [color-palette ["green" "blue" "red" ]
+        user-colors   (zipmap (keys users-data) color-palette)
+        all-days      (map time/str->days (reduce-kv (fn [days key value]
+                                                       (into days
+                                                         (concat
+                                                           (keys (get-in value [:entries :weights]))
+                                                           (keys (get-in value [:entries :goals]))))) [] users-data))
+        days-scale   (unit-scale all-days)]
     (progress-plot "Gewicht"
       (concat
-        (map #(plot-circle % "red") entries-data)
-        (map #(plot-circle % "blue") goals-data)))))
+        (map (fn [[key value]] (entries-goals-plot
+                                (get-in value [:entries :weights])
+                                (get-in value [:entries :goals])
+                                (key user-colors)
+                                days-scale))
+          users-data)))))
 
 (defn activity-plot [data]
   (let [days             (map time/str->days (keys data))
