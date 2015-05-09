@@ -77,8 +77,15 @@
 (defn current-user-data []
   (get-in @app-state [:users (current-user-id)]))
 
+(defn activities-sum [activities]
+  (reduce (fn [a b] (+ a (-> b last :activity))) 0 activities))
+
 (defn current-slimtos []
-  (get-in @app-state [:users (current-user-id) :slimtos]))
+  (let [entries     (get-in @app-state [:users (current-user-id) :entries])
+        num-weights (count (:weights entries))
+        activities  (:activities entries)]
+    (+ (* num-weights 10)
+      (activities-sum activities))))
 
 ;; TODO refactor save-weight and save-activity to make them more DRY
 (defn save-weight []
