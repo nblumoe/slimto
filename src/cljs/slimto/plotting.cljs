@@ -1,6 +1,7 @@
 (ns slimto.plotting
   (:require [slimto.utils.time :as time]))
 
+
 (defn- plot-viewbox []
   (clojure.string/join " " [-0.2 -1.2 1.4 1.4]))
 
@@ -12,15 +13,25 @@
   [:rect {:x x :y y :width "3%" :height "3%"
             :style {:fill color :stroke "#FFF" :opacity 0.65 :stroke-width ".05%"}}])
 
-(defn- plot-circle [entry color]
+(defn- plot-weight [entry color]
   (let [x (first entry)
         y (second entry)]
     (svg-circle x y color)))
 
-(defn- plot-square [entry color]
+(defn- plot-weights [weights color]
+  (let [coords-list     (map #(clojure/string.join "," %) weights)
+        polyline-coords (clojure/string.join " " coords-list)]
+    [:polyline {:points polyline-coords
+                :fill "none"
+                :stroke color
+                :stroke-width "1%"
+                :opacity "0.5"
+                }]))
+
+(defn- plot-goal [entry color]
   (let [x (first entry)
         y (second entry)]
-    (svg-square x y color)))
+    (svg-circle x y color)))
 
 (defn- unit-scale [values]
   (let [min (apply min values)
@@ -47,8 +58,8 @@
         goals-data      (apply map list [(map days-scale goals-days)
                                          (map weights-scale goals-weights)])]
     (concat
-      (map #(plot-circle % color) entries-data)
-      (map #(plot-square % color) goals-data))))
+      [(plot-weights entries-data color)]
+      (map #(plot-goal % color) goals-data))))
 
 (defn weight-plot [users-data]
   (let [color-palette ["green" "blue" "red" ]
@@ -62,7 +73,8 @@
     (progress-plot "Gewicht"
       (concat
         (map (fn [[key value]] (entries-goals-plot
-                                (get-in value [:entries :weights])
+                                (into (sorted-map-by <)
+                                  (get-in value [:entries :weights]))
                                 (get-in value [:entries :goals])
                                 (key user-colors)
                                 days-scale))
