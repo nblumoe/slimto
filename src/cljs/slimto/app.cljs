@@ -221,6 +221,7 @@
      [:h3 "Fortschritt"]
      [slimtos (current-slimtos)]
      [plot/weight-plot users-data]
+     [:hr]
      [plot/activity-plot activities]
      [back-button :main]]))
 

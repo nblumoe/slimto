@@ -9,6 +9,8 @@
     {:font-size "120%"}
     [:span.glyphicon
      {:margin-right "10px"}]]
+   [:span.legend-names
+    {:padding "10px"}]
    [:.input-group-addon
      {:font-size "110%"}]
    [:svg.progress-plot

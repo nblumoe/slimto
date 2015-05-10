@@ -1,7 +1,6 @@
 (ns slimto.plotting
   (:require [slimto.utils.time :as time]))
 
-
 (defn- plot-viewbox []
   (clojure.string/join " " [-0.05 -1.05 1.1 1.1]))
 
@@ -63,24 +62,38 @@
       [(plot-weights entries-data color)]
       (map #(plot-goal % color) goals-data))))
 
+(defn user-colors [users]
+  (let [color-palette ["green" "blue" "red"]]
+    (zipmap users color-palette)))
+
+(defn users-legend [users-data]
+  (let [colors (user-colors (keys users-data))
+        names (reduce-kv (fn [users key value]
+                           (into users {(:name value)
+                                        (key colors)})) [] users-data)]
+    (map (fn [col] [:span.legend-names {:style {:color (str (last col))}}
+                   (str (first col))]) names)))
+
 (defn weight-plot [users-data]
-  (let [color-palette ["green" "blue" "red" ]
-        user-colors   (zipmap (keys users-data) color-palette)
-        all-days      (map time/str->days (reduce-kv (fn [days key value]
+  (let [names    (keys users-data)
+        colors   (user-colors names)
+        all-days (map time/str->days (reduce-kv (fn [days key value]
                                                        (into days
                                                          (concat
                                                            (keys (get-in value [:entries :weights]))
                                                            (keys (get-in value [:entries :goals]))))) [] users-data))
         days-scale   (unit-scale all-days)]
-    (progress-plot "Gewicht"
-      (concat
-        (map (fn [[key value]] (entries-goals-plot
-                                (into (sorted-map-by <)
-                                  (get-in value [:entries :weights]))
-                                (get-in value [:entries :goals])
-                                (key user-colors)
-                                days-scale))
-          users-data)))))
+    [:div
+     (progress-plot "Gewicht"
+       (concat
+         (map (fn [[key value]] (entries-goals-plot
+                                 (into (sorted-map-by <)
+                                   (get-in value [:entries :weights]))
+                                 (get-in value [:entries :goals])
+                                 (key colors)
+                                 days-scale))
+           users-data)))
+     (users-legend users-data)]))
 
 (defn activity-plot [data]
   (let [days             (map time/str->days (keys data))
