@@ -41,9 +41,17 @@
                              (into (sorted-map-by <))
                              last
                              last
-                             :weight)]
+                             :weight)
+        most-recent-activity (->> entries
+                             :activities
+                             (into (sorted-map-by <))
+                             last
+                             last
+                             :activity)
+        ]
     (save-users-data data)
-    (swap-new-weight (js/parseFloat most-recent-weight))))
+    (swap-new-weight (js/parseFloat most-recent-weight))
+    (swap-new-activity (js/parseInt most-recent-activity))))
 
 (defn- on-authentication [auth-data]
   (when auth-data
@@ -201,13 +209,13 @@
     [:div.input-group
      [:div.input-group-addon [:span.glyphicon.glyphicon-dashboard]]
      [:select.form-control.input-lg
-      {:on-change #(swap-new-activity (-> % .-target .-value js/parseInt))}
+      {:on-change #(swap-new-activity (-> % .-target .-value js/parseInt))
+       :defaultValue (:new-activity @app-state)}
       [:option {:value (:none activity-levels)} "keine"]
       [:option {:value (:low activity-levels)}  "geringe"]
       [:option {:value (:medium activity-levels)} "mittlere"]
       [:option {:value (:high activity-levels)} "hohe"]]
-     [:div.input-group-addon "Anstrengung"]
-     ]]
+     [:div.input-group-addon "Anstrengung"]]]
    [:p]
    [:div.btn-group
     [back-button :main]
