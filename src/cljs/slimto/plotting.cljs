@@ -88,4 +88,4 @@
         activities-data  (apply map list [(map days-scale days)
                                           (map activities-scale activities)])]
     (progress-plot "Aktivitäten"
-      (map #(plot-circle % "green") activities-data))))
+      (map #(plot-weight % "green") activities-data))))
