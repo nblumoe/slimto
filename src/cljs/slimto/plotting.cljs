@@ -3,14 +3,14 @@
 
 
 (defn- plot-viewbox []
-  (clojure.string/join " " [-0.2 -1.2 1.4 1.4]))
+  (clojure.string/join " " [-0.05 -1.05 1.1 1.1]))
 
 (defn- svg-circle [x y color]
-  [:circle {:cx x :cy y :r "2%"
-            :style {:fill color :stroke "#FFF" :opacity 0.65 :stroke-width ".05%"}}])
+  [:circle {:cx x :cy y :r "1.2%"
+            :style {:fill color :stroke "#FFF" :opacity 1 :stroke-width ".3%"}}])
 
 (defn- svg-square [x y color]
-  [:rect {:x x :y y :width "3%" :height "3%"
+  [:rect {:x x :y y :width "2%" :height "2%"
             :style {:fill color :stroke "#FFF" :opacity 0.65 :stroke-width ".05%"}}])
 
 (defn- plot-weight [entry color]
@@ -21,17 +21,19 @@
 (defn- plot-weights [weights color]
   (let [coords-list     (map #(clojure/string.join "," %) weights)
         polyline-coords (clojure/string.join " " coords-list)]
-    [:polyline {:points polyline-coords
-                :fill "none"
-                :stroke color
-                :stroke-width "1%"
-                :opacity "0.5"
-                }]))
+    [:g
+     [:polyline {:points polyline-coords
+                 :fill "none"
+                 :stroke color
+                 :stroke-width "1%"
+                 :opacity "0.3"}]
+     (map #(plot-weight % color) weights)
+     ]))
 
 (defn- plot-goal [entry color]
   (let [x (first entry)
         y (second entry)]
-    (svg-circle x y color)))
+    (svg-square x y color)))
 
 (defn- unit-scale [values]
   (let [min (apply min values)
